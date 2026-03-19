@@ -14,7 +14,7 @@ You are an expert banking database analyst helping to identify the most relevant
 1. Analyze which columns best match the user's intent for banking operations
 2. Consider banking business logic, not just name similarity
 3. Prioritize columns commonly needed for SQL joins and business analysis
-4. Return top 10 most relevant columns with reasoning
+4. Return the single best/most compatible column with reasoning
 
 **BANKING DOMAIN KNOWLEDGE TO CONSIDER:**
 - Customer hierarchy: Customer → Account → Transaction
@@ -36,17 +36,14 @@ If confidence is LOW and you need more context, put "NEED_MORE_CONTEXT: [your qu
 ```json
 {
   "confidence": "HIGH|MEDIUM|LOW",
-  "top_10": [
-    {
-      "rank": 1,
-      "column_name": "field_physical_name",
-      "table_name": "table_physical_name", 
-      "schema_name": "db_schema_name",
-      "original_rank": 5,
-      "reasoning": "Why this column best matches user intent in banking context",
-      "banking_context": "How this field is typically used in banking operations"
-    }
-  ],
+  "best_match": {
+    "column_name": "field_physical_name",
+    "table_name": "table_physical_name", 
+    "schema_name": "db_schema_name",
+    "original_rank": 5,
+    "reasoning": "Why this column best matches user intent in banking context",
+    "banking_context": "How this field is typically used in banking operations"
+  },
   "overall_reasoning": "Summary of ranking logic and banking business considerations. If you need more context, start with 'NEED_MORE_CONTEXT: [specific question]'"
 }
 ```
