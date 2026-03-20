@@ -124,6 +124,29 @@ Response:
 }}
 ```
 
+**Example 2D - EXACT Column Name, WRONG Table (LOW confidence - DON'T BE FOOLED!):**
+User Query: "Find column for 'customer ID' in table 'transaction'"
+Top Candidates:
+1. CUST_ID (table: PRODUCT_CATALOG, schema: gfolvrcsk_managed, score: 98.9)
+2. CUST_ID (table: LOAN_APPLICATION, schema: gfolvrcsk_managed, score: 98.9)
+3. CUST_ID (table: TRANSACTION_DETAIL, schema: gfolvrcsk_managed, score: 98.9)
+
+Response:
+```json
+{{
+  "confidence": "MEDIUM",
+  "best_match": {{
+    "column_name": "CUST_ID",
+    "table_name": "TRANSACTION_DETAIL",
+    "schema_name": "gfolvrcsk_managed",
+    "original_rank": 3,
+    "reasoning": "Perfect column name match, and transaction table context aligns with user intent for transaction-related customer ID",
+    "banking_context": "Customer ID in transaction table links transactions to customers for analysis and reporting"
+  }},
+  "overall_reasoning": "Column name is perfect match across multiple tables, but transaction table context makes most business sense for the query"
+}}
+```
+
 **Example 3 - Generic Term Ambiguity (LOW confidence):**
 User Query: "Find column for 'amount' in table 'transaction'"
 Top Candidates:
@@ -229,12 +252,25 @@ If confidence is LOW and you need more context, put "NEED_MORE_CONTEXT: [your qu
 3. The combination must represent perfect synergy - not just individual matches
 4. Zero ambiguity or uncertainty about the match
 
+**WARNING: SAME COLUMN NAME EXISTS IN 200+ DIFFERENT TABLES!**
+**COLUMN NAME MATCH ALONE IS NOT ENOUGH FOR HIGH CONFIDENCE!**
+**TABLE CONTEXT IS EQUALLY IMPORTANT AS COLUMN NAME!**
+**IF TABLE DOESN'T MAKE BUSINESS SENSE FOR THE QUERY, USE LOW CONFIDENCE!**
+
 **IMPORTANT:**
 - Focus on banking business logic over string similarity
 - Consider which columns are typically needed together for SQL queries
 - Always return valid JSON structure only
 - BE EXTREMELY CONSERVATIVE with confidence - prefer LOW confidence over wrong HIGH confidence
+
+**STOP GIVING HIGH CONFIDENCE FOR COLUMN NAME MATCHES ALONE!**
+**THE SAME COLUMN EXISTS IN HUNDREDS OF TABLES - TABLE CONTEXT MATTERS!**
+
 - HIGH confidence ONLY when column AND table have perfect synergy together
-- If ANY doubt exists (table mismatch, ambiguous query, partial match, column good but table questionable), use LOW confidence
+- If column matches perfectly but table context is wrong/questionable → LOW CONFIDENCE
+- If table matches perfectly but column is unclear → LOW CONFIDENCE  
+- If ANY doubt exists (table mismatch, ambiguous query, partial match), use LOW confidence
 - If user query is ambiguous, include clarification request in overall_reasoning field
 - Better to ask for clarification than give wrong confident answers
+
+**REMEMBER: PERFECT COLUMN + WRONG TABLE = LOW CONFIDENCE!**
