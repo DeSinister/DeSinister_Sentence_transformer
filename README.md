@@ -51,7 +51,7 @@ Response:
     "reasoning": "Perfect match - Product Identifier maps to PROD_ID in the correct inventory table",
     "banking_context": "Product ID is the standard identifier for inventory tracking and reporting"
   }},
-  "overall_reasoning": "Clear match - column and table context align perfectly with user intent for inventory operations"
+  "overall_reasoning": "Perfect synergy - Product Identifier semantically matches PROD_ID AND inventory table context is exactly right for product identification"
 }}
 ```
 
@@ -75,6 +75,52 @@ Response:
     "banking_context": "Customer balance typically aggregates all account balances for a customer"
   }},
   "overall_reasoning": "NEED_MORE_CONTEXT: Do you need individual account balance or total customer balance across all accounts?"
+}}
+```
+
+**Example 2B - Perfect Column, Wrong Table Context (LOW confidence):**
+User Query: "Find column for 'transaction amount' in table 'customer'"
+Top Candidates:
+1. TXN_AMT (table: LOAN_PAYMENT, schema: gfolvrcsk_managed, score: 94.5)
+2. TRANSACTION_AMT (table: FEE_SCHEDULE, schema: gfolvrcsk_managed, score: 91.2)
+3. CUST_TXN_TOTAL (table: CUSTOMER_SUMMARY, schema: gfolvrcsk_managed, score: 87.8)
+
+Response:
+```json
+{{
+  "confidence": "LOW",
+  "best_match": {{
+    "column_name": "CUST_TXN_TOTAL",
+    "table_name": "CUSTOMER_SUMMARY",
+    "schema_name": "gfolvrcsk_managed",
+    "original_rank": 3,
+    "reasoning": "Column matches transaction amount concept, but customer table context suggests aggregated data, not individual transaction amounts",
+    "banking_context": "Customer transaction totals are summary fields, not individual transaction amounts"
+  }},
+  "overall_reasoning": "NEED_MORE_CONTEXT: Do you need individual transaction amounts or customer-level transaction totals/summaries?"
+}}
+```
+
+**Example 2C - Good Table, Wrong Column Context (LOW confidence):**
+User Query: "Find column for 'customer balance' in table 'account'"
+Top Candidates:
+1. OVERDRAFT_BAL (table: ACCOUNT_MASTER, schema: gfolvrcsk_managed, score: 89.1)
+2. MINIMUM_BAL (table: ACCOUNT_MASTER, schema: gfolvrcsk_managed, score: 87.3)
+3. ACCT_BAL_AMT (table: ACCOUNT_MASTER, schema: gfolvrcsk_managed, score: 85.9)
+
+Response:
+```json
+{{
+  "confidence": "LOW",
+  "best_match": {{
+    "column_name": "ACCT_BAL_AMT",
+    "table_name": "ACCOUNT_MASTER",
+    "schema_name": "gfolvrcsk_managed",
+    "original_rank": 3,
+    "reasoning": "Account table context is correct for customer balance, but ACCT_BAL_AMT is account balance, not customer balance",
+    "banking_context": "Account balance represents individual account balance, customer balance typically aggregates across all customer accounts"
+  }},
+  "overall_reasoning": "NEED_MORE_CONTEXT: Do you need individual account balance or total customer balance across all accounts? Customer balance usually requires aggregation."
 }}
 ```
 
@@ -148,12 +194,14 @@ Response:
 }}
 ```
 
-**CONFIDENCE LEVELS (BE CONSERVATIVE):**
-- HIGH: Perfect match - column name AND table context both align perfectly with user intent
-- MEDIUM: Good column match but table context is unclear or doesn't fully align
-- LOW: Any ambiguity, partial matches, or when you're not 100% certain this is what user wants
+**CONFIDENCE LEVELS (BE EXTREMELY CONSERVATIVE):**
+- HIGH: ONLY when BOTH column AND table have perfect synergy - column semantically matches query AND table context makes complete business sense for that column type
+- MEDIUM: Good column match AND reasonable table context, but some minor uncertainty exists
+- LOW: ANY mismatch between column and table context, ANY ambiguity, partial matches, or uncertainty
 
-**PREFER LOW CONFIDENCE over wrong high confidence answers. It's better to ask for clarification than give wrong results.**
+**CRITICAL: HIGH confidence requires PERFECT SYNERGY between column and table. If column matches but table doesn't make sense, or table matches but column is unclear - USE LOW CONFIDENCE.**
+
+**PREFER LOW CONFIDENCE over wrong high confidence answers. Better to ask for clarification than confidently give wrong results.**
 
 **RESPONSE FORMAT:**
 Always respond with JSON only. No additional text or explanations outside the JSON structure.
@@ -175,11 +223,18 @@ If confidence is LOW and you need more context, put "NEED_MORE_CONTEXT: [your qu
 }}
 ```
 
+**CRITICAL REQUIREMENTS FOR HIGH CONFIDENCE:**
+1. Column name must semantically match the query concept perfectly
+2. Table context must make complete business sense for that column type
+3. The combination must represent perfect synergy - not just individual matches
+4. Zero ambiguity or uncertainty about the match
+
 **IMPORTANT:**
 - Focus on banking business logic over string similarity
 - Consider which columns are typically needed together for SQL queries
 - Always return valid JSON structure only
-- BE CONSERVATIVE with confidence - prefer LOW confidence over wrong HIGH confidence
-- If ANY doubt exists (table mismatch, ambiguous query, partial match), use LOW confidence
+- BE EXTREMELY CONSERVATIVE with confidence - prefer LOW confidence over wrong HIGH confidence
+- HIGH confidence ONLY when column AND table have perfect synergy together
+- If ANY doubt exists (table mismatch, ambiguous query, partial match, column good but table questionable), use LOW confidence
 - If user query is ambiguous, include clarification request in overall_reasoning field
 - Better to ask for clarification than give wrong confident answers
